@@ -17,10 +17,10 @@ export const dynamic = 'force-dynamic';
 export default async function CheckoutPage({
   searchParams,
 }: {
-  searchParams: { material?: string };
+  searchParams: Promise<{ material?: string }>;
 }) {
   const user = await requireUser();
-  const materialId = searchParams.material;
+  const materialId = (await searchParams).material;
 
   const [material, activeSub] = await Promise.all([
     materialId

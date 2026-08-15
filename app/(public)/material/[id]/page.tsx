@@ -44,9 +44,9 @@ async function getMaterial(id: string) {
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const material = await getMaterial(params.id);
+  const material = await getMaterial((await params).id);
   if (!material) return { title: 'Material not found' };
   return {
     title: `${material.title} — ${material.course.code}`,
@@ -56,8 +56,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function MaterialPage({ params }: { params: { id: string } }) {
-  const material = await getMaterial(params.id);
+export default async function MaterialPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const material = await getMaterial((await params).id);
   if (!material) notFound();
 
   const user = await getSessionUser();

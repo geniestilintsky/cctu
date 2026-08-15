@@ -53,8 +53,9 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '25mb',
     },
-    // Runs instrumentation.ts at server boot — see lib/env-guard.ts.
-    instrumentationHook: true,
+    // instrumentation.ts is picked up automatically from Next 15 onward, so the
+    // instrumentationHook flag that used to enable it is gone. The file itself
+    // still runs at boot — see lib/env-guard.ts.
   },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];

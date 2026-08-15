@@ -18,11 +18,11 @@ export const dynamic = 'force-dynamic';
 export default async function SandboxCheckout({
   searchParams,
 }: {
-  searchParams: { reference?: string };
+  searchParams: Promise<{ reference?: string }>;
 }) {
   if (isLive()) notFound();
   const user = await requireUser();
-  const reference = searchParams.reference;
+  const reference = (await searchParams).reference;
   if (!reference) notFound();
 
   const intent = await prisma.paymentIntent.findUnique({

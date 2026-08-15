@@ -11,9 +11,10 @@ import { getFile } from '@/lib/storage';
  */
 export async function GET(
   _req: Request,
-  { params }: { params: { key: string[] } }
+  { params }: { params: Promise<{ key: string[] }> }
 ) {
-  const key = params.key.map(decodeURIComponent).join('/');
+  const { key: segments } = await params;
+  const key = segments.map(decodeURIComponent).join('/');
 
   const material = await prisma.material.findFirst({
     where: { fileKey: key },

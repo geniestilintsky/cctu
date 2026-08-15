@@ -24,17 +24,18 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 export default async function BrowsePage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
-  const facultyId = one(searchParams.faculty);
-  const departmentId = one(searchParams.department);
-  const courseId = one(searchParams.course);
-  const level = one(searchParams.level);
-  const type = one(searchParams.type);
-  const year = one(searchParams.year);
-  const price = one(searchParams.price);
-  const q = one(searchParams.q).trim();
-  const page = Math.max(1, Number(one(searchParams.page) || 1));
+  const params = await searchParams;
+  const facultyId = one(params.faculty);
+  const departmentId = one(params.department);
+  const courseId = one(params.course);
+  const level = one(params.level);
+  const type = one(params.type);
+  const year = one(params.year);
+  const price = one(params.price);
+  const q = one(params.q).trim();
+  const page = Math.max(1, Number(one(params.page) || 1));
 
   const where: Prisma.MaterialWhereInput = {
     status: 'APPROVED',
@@ -110,7 +111,7 @@ export default async function BrowsePage({
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const qs = (p: number) => {
     const next = new URLSearchParams(
-      Object.entries(searchParams).reduce<Record<string, string>>((acc, [k, v]) => {
+      Object.entries(params).reduce<Record<string, string>>((acc, [k, v]) => {
         const val = one(v);
         if (val) acc[k] = val;
         return acc;

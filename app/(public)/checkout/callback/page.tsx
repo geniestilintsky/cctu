@@ -10,10 +10,11 @@ export const dynamic = 'force-dynamic';
 export default async function CheckoutCallback({
   searchParams,
 }: {
-  searchParams: { reference?: string; trxref?: string };
+  searchParams: Promise<{ reference?: string; trxref?: string }>;
 }) {
   await requireUser();
-  const reference = searchParams.reference || searchParams.trxref;
+  const params = await searchParams;
+  const reference = params.reference || params.trxref;
 
   const result = reference
     ? await confirmPayment(reference)

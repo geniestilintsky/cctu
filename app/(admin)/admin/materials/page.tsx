@@ -15,11 +15,12 @@ const PAGE_SIZE = 40;
 export default async function AdminMaterialsPage({
   searchParams,
 }: {
-  searchParams: { status?: string; q?: string; page?: string };
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
-  const page = Math.max(1, Number(searchParams.page || 1));
-  const status = searchParams.status;
-  const q = (searchParams.q || '').trim();
+  const params = await searchParams;
+  const page = Math.max(1, Number(params.page || 1));
+  const status = params.status;
+  const q = (params.q || '').trim();
 
   const where = {
     ...(status && status !== 'ALL'
