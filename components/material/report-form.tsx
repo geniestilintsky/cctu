@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import { Flag } from 'lucide-react';
 import { reportMaterial, type ActionState } from '@/app/actions/material-actions';
 import SubmitButton from '@/components/ui/submit-button';
@@ -16,7 +15,7 @@ const REASONS = [
 
 export default function ReportForm({ materialId }: { materialId: string }) {
   const [open, setOpen] = useState(false);
-  const [state, action] = useFormState<ActionState, FormData>(reportMaterial, {});
+  const [state, action] = useActionState<ActionState, FormData>(reportMaterial, {});
 
   if (state.ok) {
     return (

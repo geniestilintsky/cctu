@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { submitBoostRequest } from '@/app/actions/student-actions';
 import type { ActionState } from '@/app/actions/material-actions';
@@ -15,7 +15,7 @@ export default function BoostRequestForm({
   available: number;
   indexNumber: string | null;
 }) {
-  const [state, action] = useFormState<ActionState, FormData>(submitBoostRequest, {});
+  const [state, action] = useActionState<ActionState, FormData>(submitBoostRequest, {});
 
   return (
     <form action={action} key={state.ok ? 'sent' : 'draft'} className="card space-y-4 p-5">

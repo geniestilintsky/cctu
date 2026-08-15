@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { assignPurchasePoints } from '@/app/actions/lecturer-actions';
 import type { ActionState } from '@/app/actions/material-actions';
@@ -16,7 +15,7 @@ export default function AwardPointsForm({
   defaultIndexNumber: string | null;
   awarded: number | null;
 }) {
-  const [state, action] = useFormState<ActionState, FormData>(
+  const [state, action] = useActionState<ActionState, FormData>(
     assignPurchasePoints,
     {}
   );

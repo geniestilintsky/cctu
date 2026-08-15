@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { updateProfile } from '@/app/actions/student-actions';
 import type { ActionState } from '@/app/actions/material-actions';
 import SubmitButton from '@/components/ui/submit-button';
@@ -16,7 +16,7 @@ export default function ProfileForm({
   indexNumber: string | null;
   email: string;
 }) {
-  const [state, action] = useFormState<ActionState, FormData>(updateProfile, {});
+  const [state, action] = useActionState<ActionState, FormData>(updateProfile, {});
 
   return (
     <form action={action} className="card space-y-4 p-5">

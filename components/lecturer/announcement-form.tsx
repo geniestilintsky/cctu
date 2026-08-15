@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { Megaphone } from 'lucide-react';
 import { postAnnouncement } from '@/app/actions/lecturer-actions';
 import type { ActionState } from '@/app/actions/material-actions';
@@ -14,7 +14,7 @@ export type CourseChoice = {
 };
 
 export default function AnnouncementForm({ courses }: { courses: CourseChoice[] }) {
-  const [state, action] = useFormState<ActionState, FormData>(postAnnouncement, {});
+  const [state, action] = useActionState<ActionState, FormData>(postAnnouncement, {});
 
   return (
     <form action={action} key={state.ok ? 'sent' : 'draft'} className="card space-y-4 p-5">

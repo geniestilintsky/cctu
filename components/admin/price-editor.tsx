@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import { setMaterialPrice } from '@/app/actions/admin-actions';
 import type { ActionState } from '@/app/actions/material-actions';
 import SubmitButton from '@/components/ui/submit-button';
@@ -16,7 +15,7 @@ export default function PriceEditor({
   isFree: boolean;
   price: string | null;
 }) {
-  const [state, action] = useFormState<ActionState, FormData>(setMaterialPrice, {});
+  const [state, action] = useActionState<ActionState, FormData>(setMaterialPrice, {});
   const [open, setOpen] = useState(false);
   const [paid, setPaid] = useState(!isFree);
 

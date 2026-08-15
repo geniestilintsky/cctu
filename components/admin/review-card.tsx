@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { Check, X, FileText, ExternalLink } from 'lucide-react';
 import { approveMaterial, rejectMaterial } from '@/app/actions/admin-actions';
@@ -27,11 +26,11 @@ export type ReviewItem = {
 };
 
 export default function ReviewCard({ item }: { item: ReviewItem }) {
-  const [approveState, approve] = useFormState<ActionState, FormData>(
+  const [approveState, approve] = useActionState<ActionState, FormData>(
     approveMaterial,
     {}
   );
-  const [rejectState, reject] = useFormState<ActionState, FormData>(
+  const [rejectState, reject] = useActionState<ActionState, FormData>(
     rejectMaterial,
     {}
   );

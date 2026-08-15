@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { upsertAffiliateLink } from '@/app/actions/admin-actions';
 import type { ActionState } from '@/app/actions/material-actions';
@@ -23,7 +22,7 @@ const PLACEMENTS = [
 ];
 
 export default function AffiliateForm({ link }: { link?: AffiliateRecord }) {
-  const [state, action] = useFormState<ActionState, FormData>(
+  const [state, action] = useActionState<ActionState, FormData>(
     upsertAffiliateLink,
     {}
   );

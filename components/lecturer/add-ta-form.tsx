@@ -1,14 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import { addTeachingAssistant } from '@/app/actions/lecturer-actions';
 import type { ActionState } from '@/app/actions/material-actions';
 import SubmitButton from '@/components/ui/submit-button';
 
 export default function AddTAForm({ remaining }: { remaining: number }) {
-  const [state, action] = useFormState<ActionState, FormData>(
+  const [state, action] = useActionState<ActionState, FormData>(
     addTeachingAssistant,
     {}
   );

@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { resolveReport } from '@/app/actions/admin-actions';
 import type { ActionState } from '@/app/actions/material-actions';
@@ -22,7 +21,7 @@ export type ReportItem = {
 };
 
 export default function ReportRow({ report }: { report: ReportItem }) {
-  const [state, action] = useFormState<ActionState, FormData>(resolveReport, {});
+  const [state, action] = useActionState<ActionState, FormData>(resolveReport, {});
   const [open, setOpen] = useState(false);
 
   return (

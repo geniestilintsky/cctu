@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, CloudUpload, FileCheck2 } from 'lucide-react';
 import { uploadMaterial } from '@/app/actions/upload-actions';
@@ -26,7 +25,7 @@ export default function UploadForm({
   canPrice: boolean;
   defaultLecturerName?: string;
 }) {
-  const [state, action] = useFormState<ActionState, FormData>(uploadMaterial, {});
+  const [state, action] = useActionState<ActionState, FormData>(uploadMaterial, {});
   const [file, setFile] = useState<File | null>(null);
   const [paid, setPaid] = useState(false);
 

@@ -1,14 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import { KeyRound, UserPlus } from 'lucide-react';
 import { createLecturer, resetUserPassword } from '@/app/actions/admin-actions';
 import type { ActionState } from '@/app/actions/material-actions';
 import SubmitButton from '@/components/ui/submit-button';
 
 export function AddLecturerForm() {
-  const [state, action] = useFormState<ActionState, FormData>(createLecturer, {});
+  const [state, action] = useActionState<ActionState, FormData>(createLecturer, {});
   const [open, setOpen] = useState(false);
 
   return (
@@ -83,7 +82,7 @@ export function AddLecturerForm() {
 }
 
 export function ResetPasswordButton({ userId }: { userId: string }) {
-  const [state, action] = useFormState<ActionState, FormData>(resetUserPassword, {});
+  const [state, action] = useActionState<ActionState, FormData>(resetUserPassword, {});
   const [open, setOpen] = useState(false);
 
   if (!open) {

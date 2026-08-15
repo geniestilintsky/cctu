@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, Plus, Trash2, Pencil } from 'lucide-react';
 import {
   createCourse,
@@ -49,9 +48,9 @@ export default function TaxonomyManager({
   faculties: TaxonomyFaculty[];
   lecturers: Lecturer[];
 }) {
-  const [facState, facAction] = useFormState<ActionState, FormData>(createFaculty, {});
-  const [depState, depAction] = useFormState<ActionState, FormData>(createDepartment, {});
-  const [crsState, crsAction] = useFormState<ActionState, FormData>(createCourse, {});
+  const [facState, facAction] = useActionState<ActionState, FormData>(createFaculty, {});
+  const [depState, depAction] = useActionState<ActionState, FormData>(createDepartment, {});
+  const [crsState, crsAction] = useActionState<ActionState, FormData>(createCourse, {});
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<string | null>(null);
   const [newCourseDept, setNewCourseDept] = useState<string | null>(null);
@@ -261,7 +260,7 @@ function CourseEditor({
   lecturers: Lecturer[];
   onDone: () => void;
 }) {
-  const [state, action] = useFormState<ActionState, FormData>(updateCourse, {});
+  const [state, action] = useActionState<ActionState, FormData>(updateCourse, {});
 
   useEffect(() => {
     if (state.ok) onDone();

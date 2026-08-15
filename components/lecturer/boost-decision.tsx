@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useState } from 'react';
 import { decideBoostRequest } from '@/app/actions/lecturer-actions';
 import type { ActionState } from '@/app/actions/material-actions';
 import SubmitButton from '@/components/ui/submit-button';
@@ -19,7 +18,7 @@ export type BoostItem = {
 };
 
 export default function BoostDecision({ request }: { request: BoostItem }) {
-  const [state, action] = useFormState<ActionState, FormData>(decideBoostRequest, {});
+  const [state, action] = useActionState<ActionState, FormData>(decideBoostRequest, {});
   const [open, setOpen] = useState(false);
 
   if (state.ok) {
