@@ -1,0 +1,20 @@
+node_modules
+.next
+out
+build
+.env
+.env*.local
+
+# Credentials kept as documents rather than in .env - never commit these.
+# Deliberately not "*.docx": the project explainer doc should stay committable.
+test key.docx
+live key.odt
+
+storage
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+
+# Local tooling / backups
+package-lock.json.backup-*
+.claude/settings.local.json

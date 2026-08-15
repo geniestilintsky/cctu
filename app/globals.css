@@ -1,0 +1,278 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Custom curves — the built-in easings lack the punch that makes motion
+       read as intentional. Entering/exiting UI uses --ease-out; things moving
+       across the screen use --ease-in-out. */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+    --header-h: 4rem;
+
+    /* Atmosphere colours for the dark surfaces, derived from the crest palette
+       so the gradients stay inside the token system. */
+    --aurora-blue: 21 128 222; /* brand-600 */
+    --aurora-gold: 255 201 7; /* gold-500  */
+    --aurora-sky: 93 177 255; /* brand-400 */
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white text-ink-900 antialiased;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply text-pretty;
+  }
+
+  /* Tabular figures wherever numbers are compared down a column. */
+  th,
+  td,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    @apply bg-gold-200 text-ink-900;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500/70 ring-offset-2 ring-offset-white;
+  }
+
+  /* Reduced motion means fewer, gentler animations — not zero. Movement is
+     removed; opacity and colour transitions that communicate state survive,
+     so hover, focus and press feedback all keep working. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      /* Kill travel, keep the fade. */
+      transition-property: opacity, color, background-color, border-color,
+        box-shadow, fill, stroke !important;
+      transition-duration: 150ms !important;
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+    }
+    /* Looping ambient motion has no informational value — stop it outright. */
+    .animate-pulse-ring,
+    .animate-scroll-cue,
+    .animate-pulse {
+      animation: none !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8;
+  }
+
+  /* ---------------------------------------------------------------- buttons */
+
+  .btn {
+    @apply relative inline-flex select-none items-center justify-center gap-2 rounded-[10px]
+      px-4 py-2.5 text-sm font-semibold leading-none
+      transition-[transform,background-color,color,box-shadow,border-color] duration-150
+      disabled:pointer-events-none disabled:opacity-45;
+    transition-timing-function: var(--ease-out);
+  }
+  /* Press feedback: instant, subtle, and only where a pointer really exists. */
+  .btn:active {
+    transform: scale(0.97);
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-600 text-white shadow-button;
+  }
+  .btn-gold {
+    @apply btn bg-gold-500 text-ink-900 shadow-button-gold;
+  }
+  .btn-outline {
+    @apply btn border border-ink-200 bg-white text-ink-800 shadow-xs;
+  }
+  .btn-ghost {
+    @apply btn text-ink-600;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white shadow-button;
+  }
+  .btn-sm {
+    @apply gap-1.5 rounded-lg px-3 py-2 text-xs;
+  }
+  .btn-lg {
+    @apply gap-2.5 rounded-xl px-6 py-3.5 text-[15px];
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover {
+      @apply bg-brand-700;
+    }
+    .btn-gold:hover {
+      @apply bg-gold-400;
+    }
+    .btn-outline:hover {
+      @apply border-ink-300 bg-ink-50;
+    }
+    .btn-ghost:hover {
+      @apply bg-ink-100 text-ink-900;
+    }
+    .btn-danger:hover {
+      @apply bg-red-700;
+    }
+  }
+
+  /* ------------------------------------------------------------------ cards */
+
+  .card {
+    @apply rounded-2xl border border-ink-200/80 bg-white shadow-card;
+  }
+
+  /* Opt-in hover treatment so static cards don't lift for no reason. */
+  .card-interactive {
+    @apply card transition-[transform,box-shadow,border-color] duration-200;
+    transition-timing-function: var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card-interactive:hover {
+      @apply -translate-y-0.5 border-ink-300 shadow-lift;
+    }
+  }
+  .card-interactive:active {
+    transform: translateY(0) scale(0.995);
+  }
+
+  /* ----------------------------------------------------------------- inputs */
+
+  .input {
+    @apply w-full rounded-[10px] border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900
+      shadow-xs transition-[border-color,box-shadow] duration-150
+      placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10;
+    transition-timing-function: var(--ease-out);
+  }
+  .input:focus-visible {
+    @apply ring-offset-0;
+  }
+  .label {
+    @apply mb-1.5 block text-[13px] font-medium text-ink-700;
+  }
+  .hint {
+    @apply mt-1.5 text-xs leading-relaxed text-ink-500;
+  }
+
+  /* ----------------------------------------------------------------- badges */
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium leading-none;
+  }
+  .badge-free {
+    @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20;
+  }
+  .badge-paid {
+    @apply badge bg-gold-100 text-gold-800 ring-1 ring-inset ring-gold-600/30;
+  }
+  .badge-neutral {
+    @apply badge bg-ink-100 text-ink-700 ring-1 ring-inset ring-ink-200;
+  }
+  .badge-brand {
+    @apply badge bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/20;
+  }
+  .badge-pending {
+    @apply badge bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-600/25;
+  }
+  .badge-rejected {
+    @apply badge bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20;
+  }
+
+  /* ------------------------------------------------------------------ table */
+
+  .table-wrap {
+    @apply overflow-x-auto rounded-2xl border border-ink-200/80 bg-white shadow-xs;
+  }
+  .table {
+    @apply w-full min-w-[640px] border-collapse text-sm;
+  }
+  .table thead th {
+    @apply whitespace-nowrap border-b border-ink-200 bg-ink-50/70 px-4 py-3 text-left text-[11px]
+      font-semibold uppercase tracking-[0.08em] text-ink-500;
+  }
+  .table tbody td {
+    @apply border-b border-ink-100 px-4 py-3.5 align-middle text-ink-700;
+  }
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .table tbody tr {
+    @apply transition-colors duration-150;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .table tbody tr:hover {
+      @apply bg-ink-50/70;
+    }
+  }
+
+  .prose-note {
+    @apply text-sm leading-relaxed text-ink-600;
+  }
+
+  /* Underline that grows from the left on hover — used in footers and prose. */
+  .link-underline {
+    @apply relative text-ink-500 transition-colors duration-150 hover:text-ink-900;
+  }
+  .link-underline::after {
+    content: '';
+    @apply absolute -bottom-0.5 left-0 h-px w-full origin-right scale-x-0 bg-current;
+    transition: transform 220ms var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .link-underline:hover::after {
+      @apply origin-left scale-x-100;
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+  }
+  .mask-fade-r {
+    -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+    mask-image: linear-gradient(to right, black 80%, transparent 100%);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-300;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}

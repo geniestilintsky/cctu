@@ -1,0 +1,364 @@
+// CCTU StudyHub — Prisma schema (MySQL)
+// Mirrors Section 4 of university-portal-design-plan.md, with the extra
+// fields/back-relations the app layer needs (password hashes, file metadata,
+// TA activity log, content reports).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  LECTURER
+  TA
+  STUDENT
+}
+
+enum MaterialType {
+  PAST_EXAM
+  QUIZ
+  HANDOUT
+  TUTORIAL
+  BOOK
+  THESIS
+}
+
+enum MaterialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PointSource {
+  UPLOAD_VERIFIED
+  PURCHASE_AWARDED
+  BOOST_REDEEMED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String?
+  phone        String?
+  indexNumber  String? // student index number, optional, used for point boosts
+  role         Role     @default(STUDENT)
+  addedById    String? // TAs: the lecturer who added them; lecturers: the admin
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  addedBy    User?  @relation("UserAddedBy", fields: [addedById], references: [id])
+  addedUsers User[] @relation("UserAddedBy")
+
+  uploads           Material[]                 @relation("MaterialUploader")
+  reviewed          Material[]                 @relation("MaterialReviewer")
+  purchases         Purchase[]
+  subscriptions     Subscription[]
+  paymentIntents    PaymentIntent[]
+  points            PointTransaction[]         @relation("PointOwner")
+  pointsAwarded     PointTransaction[]         @relation("PointAwarder")
+  boostRequests     BoostRequest[]             @relation("BoostStudent")
+  boostDecisions    BoostRequest[]             @relation("BoostDecider")
+  notifSubs         NotificationSubscription[] @relation("NotifStudent")
+  notifSubsAsTarget NotificationSubscription[] @relation("NotifLecturer")
+  coursesLed        Course[]                   @relation("CourseLecturer")
+  announcements     Announcement[]
+  taActions         TAActivityLog[]            @relation("TAActor")
+  taActionsReceived TAActivityLog[]            @relation("TALecturer")
+  reportsFiled      MaterialReport[]           @relation("ReportReporter")
+
+  @@index([role])
+  @@index([addedById])
+}
+
+model Faculty {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  departments Department[]
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  facultyId String
+  faculty   Faculty  @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  courses   Course[]
+
+  @@index([facultyId])
+}
+
+model Course {
+  id           String     @id @default(cuid())
+  code         String // e.g. CENG 301
+  title        String
+  level        Int        @default(100) // year/level: 100, 200, 300, 400
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  lecturerId   String? // primary lecturer
+  lecturer     User?      @relation("CourseLecturer", fields: [lecturerId], references: [id])
+
+  materials     Material[]
+  notifSubs     NotificationSubscription[]
+  announcements Announcement[]
+  boostRequests BoostRequest[]
+  points        PointTransaction[]
+
+  @@unique([code, departmentId])
+  @@index([departmentId])
+  @@index([lecturerId])
+  @@index([level])
+}
+
+model Material {
+  id              String         @id @default(cuid())
+  title           String
+  description     String?        @db.Text
+  type            MaterialType
+  courseId        String
+  course          Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  uploadedById    String
+  uploadedBy      User           @relation("MaterialUploader", fields: [uploadedById], references: [id])
+  lecturerName    String? // for filtering past exams by lecturer
+  academicYear    String? // e.g. 2023/2024
+  semester        String?
+  isFree          Boolean        @default(true)
+  price           Decimal?       @db.Decimal(10, 2) // null if free
+  fileUrl         String         @db.Text
+  fileKey         String         @db.Text
+  fileName        String
+  fileSize        Int            @default(0)
+  mimeType        String         @default("application/pdf")
+  status          MaterialStatus @default(PENDING)
+  autoPublished   Boolean        @default(false) // true for lecturer/TA uploads
+  rejectionReason String?        @db.Text
+  reviewedById    String?
+  reviewedBy      User?          @relation("MaterialReviewer", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?
+  downloadCount   Int            @default(0)
+  createdAt       DateTime       @default(now())
+
+  purchases Purchase[]
+  reports   MaterialReport[]
+  points    PointTransaction[]
+  intents   PaymentIntent[]
+
+  @@index([courseId])
+  @@index([uploadedById])
+  @@index([status])
+  @@index([type])
+  @@index([reviewedById])
+}
+
+model Purchase {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  materialId  String
+  material    Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  amount      Decimal  @db.Decimal(10, 2)
+  paystackRef String   @unique
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, materialId])
+  @@index([materialId])
+}
+
+/// A started checkout. Links a Paystack reference back to the buyer and the
+/// thing being bought, so the webhook (or sandbox resolver) can fulfil it.
+model PaymentIntent {
+  id         String        @id @default(cuid())
+  reference  String        @unique
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       PaymentKind
+  materialId String?
+  material   Material?     @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  plan       String?
+  amount     Decimal       @db.Decimal(10, 2)
+  status     PaymentStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  settledAt  DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([materialId])
+}
+
+enum PaymentKind {
+  MATERIAL
+  SUBSCRIPTION
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        String // e.g. "Semester Pass"
+  amount      Decimal            @default(0) @db.Decimal(10, 2)
+  paystackRef String?            @unique
+  startedAt   DateTime           @default(now())
+  expiresAt   DateTime
+  status      SubscriptionStatus @default(ACTIVE)
+  createdAt   DateTime           @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+model PointTransaction {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation("PointOwner", fields: [userId], references: [id], onDelete: Cascade)
+  source       PointSource
+  courseId     String?
+  course       Course?     @relation(fields: [courseId], references: [id])
+  materialId   String?
+  material     Material?   @relation(fields: [materialId], references: [id])
+  points       Int
+  note         String?
+  studentName  String? // captured at award time
+  indexNumber  String? // captured at award time (optional)
+  awardedById  String? // lecturer/TA who awarded, if purchase-based
+  awardedBy    User?       @relation("PointAwarder", fields: [awardedById], references: [id])
+  boostRequest BoostRequest? @relation("BoostLedger")
+  createdAt    DateTime    @default(now())
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([awardedById])
+  @@index([materialId])
+}
+
+model BoostRequest {
+  id          String        @id @default(cuid())
+  studentId   String
+  student     User          @relation("BoostStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  pointsUsed  Int
+  message     String?       @db.Text
+  indexNumber String?
+  status      RequestStatus @default(PENDING)
+  decidedById String? // lecturer
+  decidedBy   User?         @relation("BoostDecider", fields: [decidedById], references: [id])
+  decisionNote String?      @db.Text
+  decidedAt   DateTime?
+  ledgerId    String?       @unique
+  ledger      PointTransaction? @relation("BoostLedger", fields: [ledgerId], references: [id])
+  createdAt   DateTime      @default(now())
+
+  @@index([studentId])
+  @@index([courseId])
+  @@index([status])
+  @@index([decidedById])
+}
+
+model NotificationSubscription {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    User     @relation("NotifStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  courseId   String?
+  course     Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lecturerId String?
+  lecturer   User?    @relation("NotifLecturer", fields: [lecturerId], references: [id])
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([studentId, courseId])
+  @@unique([studentId, lecturerId])
+  @@index([courseId])
+  @@index([lecturerId])
+}
+
+model Announcement {
+  id           String   @id @default(cuid())
+  authorId     String // lecturer or TA
+  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title        String
+  body         String   @db.Text
+  sentViaEmail Boolean  @default(false)
+  recipients   Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([courseId])
+  @@index([authorId])
+}
+
+model AffiliateLink {
+  id          String   @id @default(cuid())
+  label       String // e.g. "Summarize with [AI Tool]"
+  description String?  @db.Text
+  targetUrl   String   @db.Text
+  placement   String   @default("post-download") // e.g. "post-download"
+  active      Boolean  @default(true)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  revenue     Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+
+  @@index([placement])
+}
+
+/// Every TA action, surfaced as a notification on the owning lecturer's dashboard.
+model TAActivityLog {
+  id         String   @id @default(cuid())
+  actorId    String // the TA (or lecturer) who performed the action
+  actor      User     @relation("TAActor", fields: [actorId], references: [id], onDelete: Cascade)
+  lecturerId String // the lecturer whose account the action rolls up to
+  lecturer   User     @relation("TALecturer", fields: [lecturerId], references: [id], onDelete: Cascade)
+  action     String // UPLOAD | ANNOUNCEMENT | POINTS_ASSIGNED | BOOST_DECISION
+  summary    String   @db.Text
+  entityId   String?
+  seen       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([lecturerId, seen])
+  @@index([actorId])
+}
+
+/// "Report content" flag on every material, visible to the Super Admin (§5.7).
+model MaterialReport {
+  id         String        @id @default(cuid())
+  materialId String
+  material   Material      @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  reporterId String?
+  reporter   User?         @relation("ReportReporter", fields: [reporterId], references: [id])
+  reason     String
+  details    String?       @db.Text
+  contact    String?
+  status     RequestStatus @default(PENDING)
+  resolution String?       @db.Text
+  createdAt  DateTime      @default(now())
+
+  @@index([materialId])
+  @@index([status])
+  @@index([reporterId])
+}
