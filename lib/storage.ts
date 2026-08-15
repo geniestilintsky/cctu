@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { mkdir, writeFile, readFile, unlink } from 'fs/promises';
+import { mkdir, writeFile, unlink } from 'fs/promises';
 import path from 'path';
 
 /**
@@ -89,35 +89,10 @@ export async function putFile(file: File, prefix = 'materials'): Promise<StoredF
   };
 }
 
-export async function getFile(
-  key: string
-): Promise<{ body: Buffer; mimeType: string } | null> {
-  if (isR2Configured()) {
-    try {
-      const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-      const client = await r2Client();
-      const res = await client.send(
-        new GetObjectCommand({ Bucket: process.env.R2_BUCKET!, Key: key })
-      );
-      const bytes = await res.Body!.transformToByteArray();
-      return {
-        body: Buffer.from(bytes),
-        mimeType: res.ContentType || 'application/octet-stream',
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  try {
-    const full = path.join(LOCAL_ROOT, key);
-    if (!full.startsWith(LOCAL_ROOT)) return null; // path traversal guard
-    const body = await readFile(full);
-    return { body, mimeType: guessMime(key) };
-  } catch {
-    return null;
-  }
-}
+/* getFile() used to read an entire object into a Buffer. It has been replaced
+ * by getSignedDownloadUrl() for R2 and getFileStream() for local disk, and is
+ * deliberately not kept around: reintroducing a buffered read would restore the
+ * memory ceiling this change removed. */
 
 /**
  * A short-lived URL that lets the browser fetch the object straight from R2.
