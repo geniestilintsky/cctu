@@ -46,6 +46,21 @@ export function formatBytes(bytes: number) {
   return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
+/**
+ * The only URL a download should ever be offered from.
+ *
+ * Every download goes through /api/files, which runs the access check before
+ * releasing anything. Linking to a stored fileUrl is not safe: with R2 and a
+ * public base URL configured that value is a direct bucket link, and it gets
+ * rendered into the page, so a paid material could be fetched without paying.
+ *
+ * Segments are encoded individually so slashes stay path separators — the route
+ * decodes each one back.
+ */
+export function downloadPath(fileKey: string) {
+  return `/api/files/${fileKey.split('/').map(encodeURIComponent).join('/')}`;
+}
+
 export function slugify(input: string) {
   return input
     .toLowerCase()

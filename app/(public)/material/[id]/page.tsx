@@ -12,7 +12,7 @@ import {
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/session';
 import { checkMaterialAccess } from '@/lib/access';
-import { formatBytes, formatDate, plain } from '@/lib/utils';
+import { formatBytes, formatDate, plain, downloadPath } from '@/lib/utils';
 import { MATERIAL_TYPE_LABELS } from '@/lib/config';
 import {
   Breadcrumbs,
@@ -244,7 +244,7 @@ export default async function MaterialPage({
             <div className="relative">
               <DownloadPanel
                 materialId={material.id}
-                fileUrl={material.fileUrl}
+                fileUrl={downloadPath(material.fileKey)}
                 isFree={material.isFree}
                 price={material.price?.toString() ?? null}
                 access={access.reason}

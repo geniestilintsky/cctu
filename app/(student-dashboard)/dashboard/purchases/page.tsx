@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/session';
 import { hasActiveSubscription } from '@/lib/access';
-import { formatDate, formatMoney } from '@/lib/utils';
+import { formatDate, formatMoney, downloadPath } from '@/lib/utils';
 import { PageHeader, EmptyState, StatusBadge } from '@/components/ui/primitives';
 
 export const metadata = { title: 'My purchases' };
@@ -20,7 +20,7 @@ export default async function PurchasesPage() {
           select: {
             id: true,
             title: true,
-            fileUrl: true,
+            fileKey: true,
             course: { select: { code: true } },
           },
         },
@@ -97,7 +97,7 @@ export default async function PurchasesPage() {
                     </td>
                     <td>{formatMoney(p.amount.toString())}</td>
                     <td className="text-right">
-                      <a href={p.material.fileUrl} download className="btn-outline btn-sm">
+                      <a href={downloadPath(p.material.fileKey)} download className="btn-outline btn-sm">
                         Download
                       </a>
                     </td>

@@ -64,10 +64,13 @@ export async function putFile(file: File, prefix = 'materials'): Promise<StoredF
         ContentType: mimeType,
       })
     );
-    const base = process.env.R2_PUBLIC_BASE_URL;
+    // Always the gated route, never R2_PUBLIC_BASE_URL: a direct bucket link
+    // would hand out paid material without an access check, and this value is
+    // rendered into the page. /api/files checks access, then redirects to a
+    // short-lived presigned URL.
     return {
       key,
-      url: base ? `${base.replace(/\/$/, '')}/${key}` : `/api/files/${key}`,
+      url: `/api/files/${key}`,
       size: buffer.length,
       mimeType,
       fileName: file.name,
@@ -111,6 +114,75 @@ export async function getFile(
     if (!full.startsWith(LOCAL_ROOT)) return null; // path traversal guard
     const body = await readFile(full);
     return { body, mimeType: guessMime(key) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A short-lived URL that lets the browser fetch the object straight from R2.
+ *
+ * This is what keeps the app out of the download path. Previously every byte
+ * was read into the server's memory and copied again into the response, so a
+ * 25 MB file cost ~50 MB per concurrent download and a busy exam week could
+ * exhaust the process. With a presigned URL the server only decides *whether*
+ * the download is allowed; R2 serves the bytes.
+ *
+ * The expiry is deliberately short. The URL grants access to anyone holding it,
+ * so it should outlive the redirect and little else.
+ *
+ * Returns null when R2 is not configured, so callers fall back to local disk.
+ */
+export async function getSignedDownloadUrl(
+  key: string,
+  fileName: string,
+  expiresInSeconds = 120
+): Promise<string | null> {
+  if (!isR2Configured()) return null;
+
+  const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+  const client = await r2Client();
+
+  // Quotes would end the filename early and let a crafted name inject further
+  // Content-Disposition parameters.
+  const safeFileName = fileName.replace(/["\\]/g, '');
+
+  const command = new GetObjectCommand({
+    Bucket: process.env.R2_BUCKET!,
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="${safeFileName}"`,
+  });
+
+  return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
+}
+
+/**
+ * Local-disk equivalent of the above: a stream rather than a buffer, so the
+ * fallback path does not hold whole files in memory either.
+ */
+export async function getFileStream(key: string): Promise<{
+  stream: ReadableStream<Uint8Array>;
+  size: number;
+  mimeType: string;
+} | null> {
+  const full = path.join(LOCAL_ROOT, key);
+  if (!full.startsWith(LOCAL_ROOT)) return null; // path traversal guard
+
+  try {
+    const { createReadStream } = await import('fs');
+    const { stat } = await import('fs/promises');
+    const { Readable } = await import('stream');
+
+    const info = await stat(full);
+    if (!info.isFile()) return null;
+
+    const nodeStream = createReadStream(full);
+    return {
+      stream: Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>,
+      size: info.size,
+      mimeType: guessMime(key),
+    };
   } catch {
     return null;
   }

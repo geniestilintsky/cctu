@@ -2,12 +2,16 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/session';
 import { checkMaterialAccess } from '@/lib/access';
-import { getFile } from '@/lib/storage';
+import { getSignedDownloadUrl, getFileStream } from '@/lib/storage';
 
 /**
  * Serves stored files. Free files are open to everyone (no login, §5.1); paid
  * files run the same access check as the material page, so the storage URL can
  * never be used to sidestep payment.
+ *
+ * The check always happens here. Only once it passes does the request either
+ * redirect to a short-lived presigned R2 URL, or stream from local disk when R2
+ * is not configured. Either way the file's bytes are never buffered in memory.
  */
 export async function GET(
   _req: Request,
@@ -46,20 +50,43 @@ export async function GET(
     return new NextResponse('Payment required', { status: 402 });
   }
 
-  const file = await getFile(key);
+  // Access is granted from here on.
+  const signedUrl = await getSignedDownloadUrl(key, material.fileName);
+
+  if (signedUrl) {
+    await bumpDownloadCount(material.id);
+    // 302, not 307/308: this is a one-off location for this request and must
+    // never be cached or replayed once the signature expires.
+    return NextResponse.redirect(signedUrl, {
+      status: 302,
+      headers: { 'Cache-Control': 'private, no-store' },
+    });
+  }
+
+  const file = await getFileStream(key);
   if (!file) return new NextResponse('File missing from storage', { status: 404 });
 
-  await prisma.material.update({
-    where: { id: material.id },
-    data: { downloadCount: { increment: 1 } },
-  });
+  await bumpDownloadCount(material.id);
 
-  return new NextResponse(new Uint8Array(file.body), {
+  const safeFileName = material.fileName.replace(/["\\]/g, '');
+  return new NextResponse(file.stream, {
     headers: {
       'Content-Type': file.mimeType,
-      'Content-Disposition': `attachment; filename="${material.fileName}"`,
-      'Content-Length': String(file.body.length),
+      'Content-Disposition': `attachment; filename="${safeFileName}"`,
+      'Content-Length': String(file.size),
       'Cache-Control': 'private, no-store',
     },
   });
+}
+
+/** A failed counter update must never cost the user their download. */
+async function bumpDownloadCount(materialId: string) {
+  try {
+    await prisma.material.update({
+      where: { id: materialId },
+      data: { downloadCount: { increment: 1 } },
+    });
+  } catch {
+    /* counting is not worth failing a download over */
+  }
 }
